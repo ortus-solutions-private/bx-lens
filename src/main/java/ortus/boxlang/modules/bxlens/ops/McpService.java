@@ -65,18 +65,23 @@ public final class McpService {
 	 * @param store       where the list is saved
 	 * @param builtinBase empty for the real addresses of the builtin servers; else the address of a stand-in that serves each at base/id
 	 * @param resolver    resolves host names (replaced in tests)
+	 * @param client      the MCP client: bx-ai in the module, a fake server client in tests
 	 */
-	public McpService( SettingsStore store, java.util.function.Supplier<String> builtinBase, McpUrls.Resolver resolver, LongSupplier clock ) {
+	public McpService( SettingsStore store, java.util.function.Supplier<String> builtinBase, McpUrls.Resolver resolver, LongSupplier clock,
+	    McpClient client ) {
 		this.store			= store;
 		this.builtinBase	= builtinBase;
 		this.resolver		= resolver == null ? McpUrls.SYSTEM : resolver;
-		this.client			= new McpClient( this.resolver );
+		this.client			= client;
 		this.clock			= clock == null ? System::currentTimeMillis : clock;
 		load();
 	}
 
-	public McpService( SettingsStore store, java.util.function.Supplier<String> builtinBase ) {
-		this( store, builtinBase, null, null );
+	/**
+	 * @param invocationPath the class path of this module (where the bridge to the MCP client of bx-ai is), known once the module has loaded
+	 */
+	public McpService( SettingsStore store, java.util.function.Supplier<String> builtinBase, java.util.function.Supplier<String> invocationPath ) {
+		this( store, builtinBase, null, null, new BxAiMcpClient( null, invocationPath ) );
 	}
 
 	// ---------------------------------------------------------------------------------------------

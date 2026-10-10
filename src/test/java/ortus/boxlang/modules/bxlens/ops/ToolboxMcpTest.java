@@ -45,7 +45,8 @@ public class ToolboxMcpTest {
 		this.svc.setConfig( new LensConfig( Map.of() ) );
 		this.fake			= new FakeMcpServer();
 		this.fake.toolNames	= List.of( "searchDocumentation", "getPage", "leak", "injected", "big" );
-		this.mcp			= new McpService( new SettingsStore( null, new SettingsRegistry( List.of() ) ), this.fake::base );
+		this.mcp			= new McpService( new SettingsStore( null, new SettingsRegistry( List.of() ) ), this.fake::base, null, null,
+		    new HttpMcpClient( null ) );
 		this.svc.setMcp( this.mcp );
 		this.acme = this.mcp.add( "Acme", this.fake.url( "acme" ) );
 		this.mcp.enable( "boxlang", true );
@@ -56,7 +57,7 @@ public class ToolboxMcpTest {
 
 	@AfterEach
 	void stop() {
-		this.svc.setMcp( new McpService( new SettingsStore( null, new SettingsRegistry( List.of() ) ), () -> "" ) );
+		this.svc.setMcp( new McpService( new SettingsStore( null, new SettingsRegistry( List.of() ) ), () -> "", null, null, new HttpMcpClient( null ) ) );
 		this.svc.setConfig( LensConfig.defaults() );
 		this.svc.setLicensing( new Licensing( "" ) );
 		this.fake.close();

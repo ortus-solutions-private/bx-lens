@@ -88,7 +88,7 @@ public final class LensService {
 	private volatile SettingsRegistry								settingsRegistry	= new SettingsRegistry( List.of() );
 	private volatile SettingsStore									settingsStore		= new SettingsStore( null, settingsRegistry );
 	private volatile ortus.boxlang.modules.bxlens.ops.McpService	mcp					= new ortus.boxlang.modules.bxlens.ops.McpService(
-	    settingsStore, () -> "" );
+	    settingsStore, () -> "", () -> "" );
 	private final List<ILensCollector>								allBuiltIns			= new ArrayList<>();
 	private final ConsoleData										consoleData			= new ConsoleData( this );
 	private final AtomicInteger										streams				= new AtomicInteger();
@@ -182,7 +182,8 @@ public final class LensService {
 		this.mcp.shutdown();
 		// dev.mcpBuiltinBase serves the builtin documentation servers from a stand-in (the test harness): base/id for each. It is read from
 		// boxlang.json only; the console cannot change it.
-		this.mcp = new ortus.boxlang.modules.bxlens.ops.McpService( this.settingsStore, () -> this.baseConfig.getString( "dev.mcpBuiltinBase", "" ) );
+		this.mcp = new ortus.boxlang.modules.bxlens.ops.McpService( this.settingsStore, () -> this.baseConfig.getString( "dev.mcpBuiltinBase", "" ),
+		    () -> this.agents.invocationPath() );
 		if ( this.settingsStore.skipped() > 0 ) {
 			getLogger().warn( "bx-lens: ignored {} invalid entries in the settings overrides file [{}]", this.settingsStore.skipped(), overridesFile );
 		}

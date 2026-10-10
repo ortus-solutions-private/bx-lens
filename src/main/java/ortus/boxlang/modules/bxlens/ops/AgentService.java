@@ -111,6 +111,11 @@ public final class AgentService {
 		this.invocationPath = path == null ? "" : path;
 	}
 
+	/** The class path of this module, empty until the module has loaded. */
+	public String invocationPath() {
+		return this.invocationPath;
+	}
+
 	// ---------------------------------------------------------------------------------------------
 	// Status
 	// ---------------------------------------------------------------------------------------------

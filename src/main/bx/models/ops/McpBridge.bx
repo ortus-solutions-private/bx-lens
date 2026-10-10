@@ -1,0 +1,165 @@
+/**
+ * [BoxLang]
+ *
+ * Copyright [2026] [Ortus Solutions, Corp]
+ */
+/**
+ * The MCP client of Lens: the MCP client of bx-ai with the controls Lens needs. Java (BxAiMcpClient) calls it and turns the answer into plain
+ * values. Each call builds a new client, so nothing is shared between calls or threads.
+ *
+ * What Lens sets on the bx-ai client:
+ * - withUrlGuard: the address is checked again immediately before every request (Java McpUrls.check), so the rules of the admin page hold
+ *   at the moment of connecting. A refusal is kept as the reason and shown as it is, it holds no address and no secret.
+ * - withRedirects( false ): a redirect is an error, the new address is never called.
+ * - withHttpVersion( "HTTP/1.1" ): no HTTP/2 upgrade request (h2c) on a plain http address, which some servers answer badly.
+ * - withMaxResponseBytes: an answer longer than the limit is refused.
+ * - withHandshake: initialize first, as the MCP specification asks. A server that does not know it is still used.
+ * - no credentials: no token and no custom header except the user agent.
+ *
+ * Every function returns a struct: ok, and then either tools or text and isError, or kind (refused or unreachable) and message. The message
+ * is written here from the status of the answer. What bx-ai or the server said is never passed on, except the text of a JSON-RPC error.
+ */
+class {
+
+	static {
+		MAX_BODY  = 1000000
+		MAX_TOOLS = 100
+		MAX_PAGES = 5
+	}
+
+	/**
+	 * @guard a Java Predicate: test( url ) is true or throws the reason the address is not allowed
+	 */
+	function init( required any guard ) {
+		variables.guard = arguments.guard
+		return this
+	}
+
+	/**
+	 * The tools of a server, all pages up to the limits.
+	 *
+	 * @url       the address, already checked
+	 * @timeoutMs the time limit of each request
+	 */
+	struct function listTools( required string url, required numeric timeoutMs ) {
+		var state  = { refusal : "" }
+		var client = open( arguments.url, arguments.timeoutMs, state )
+		var tools  = []
+		var cursor = ""
+		for ( var page = 1; page <= static.MAX_PAGES; page++ ) {
+			var response = client.listTools( cursor )
+			if ( !response.isSuccess() ) {
+				return failure( response, state, arguments.timeoutMs )
+			}
+			var data = response.getData()
+			var list = isStruct( data ) ? ( data.tools ?: [] ) : ( isArray( data ) ? data : [] )
+			for ( var tool in list ) {
+				if ( isStruct( tool ) && len( tool.name ?: "" ) && tools.len() < static.MAX_TOOLS ) {
+					tools.append( {
+						name        : tool.name,
+						description : tool.description ?: "",
+						schema      : tool.inputSchema ?: {}
+					} )
+				}
+			}
+			cursor = isStruct( data ) ? ( data.nextCursor ?: "" ) : ""
+			if ( !isSimpleValue( cursor ) || !len( cursor ) ) {
+				break
+			}
+		}
+		return { ok : true, tools : tools }
+	}
+
+	/**
+	 * Call a tool and return its text.
+	 *
+	 * @url       the address, already checked
+	 * @timeoutMs the time limit of each request
+	 * @tool      the name of the tool on the server
+	 * @args      the arguments
+	 */
+	struct function callTool( required string url, required numeric timeoutMs, required string tool, required struct args ) {
+		var state    = { refusal : "" }
+		var client   = open( arguments.url, arguments.timeoutMs, state )
+		var response = client.send( arguments.tool, arguments.args )
+		if ( !response.isSuccess() ) {
+			return failure( response, state, arguments.timeoutMs )
+		}
+		var data    = response.getData()
+		var content = isStruct( data ) ? ( data.content ?: [] ) : data
+		var parts   = []
+		if ( isArray( content ) ) {
+			for ( var item in content ) {
+				if ( isStruct( item ) && ( item.type ?: "" ) == "text" ) {
+					parts.append( item.text ?: "" )
+				} else {
+					parts.append( "[" & ( isStruct( item ) && len( item.type ?: "" ) ? item.type : "content" ) & " omitted]" )
+				}
+			}
+		} else if ( isSimpleValue( content ) ) {
+			parts.append( content )
+		}
+		var text = parts.toList( char( 10 ) )
+		if ( !len( text ) && isStruct( data ) && !isNull( data.structuredContent ) ) {
+			text = jsonSerialize( data.structuredContent )
+		}
+		return { ok : true, text : text, isError : isStruct( data ) && ( data.isError ?: false ) == true }
+	}
+
+	// ---------------------------------------------------------------------------------------------
+
+	private function open( required string url, required numeric timeoutMs, required struct state ) {
+		var check = variables.guard
+		return MCP( arguments.url )
+			.withTimeout( arguments.timeoutMs )
+			.withRedirects( false )
+			.withHttpVersion( "HTTP/1.1" )
+			.withMaxResponseBytes( static.MAX_BODY )
+			.withHandshake()
+			.withHeaders( { "User-Agent" : "bx-lens" } )
+			.withUrlGuard( ( target ) => {
+				try {
+					return check.test( target )
+				} catch ( any e ) {
+					state.refusal = e.message
+					throw( e )
+				}
+			} )
+	}
+
+	/**
+	 * A reason that is safe to show, from the status of the answer.
+	 */
+	private struct function failure( required any response, required struct state, required numeric timeoutMs ) {
+		if ( len( arguments.state.refusal ) ) {
+			return { ok : false, kind : "refused", message : arguments.state.refusal }
+		}
+		var status  = arguments.response.getStatusCode()
+		var raw     = arguments.response.getError()
+		var message = ""
+		if ( status >= 300 && status < 400 ) {
+			message = "the server redirected (HTTP #status#), which is not followed"
+		} else if ( status == 408 ) {
+			// bx:http answers 408 when its time limit passes
+			message = "timed out after #ceiling( arguments.timeoutMs / 1000 )# s"
+		} else if ( status == 502 && raw contains "Connection Failure" ) {
+			// bx:http answers 502 when it could not connect (refused, unreachable, reset)
+			message = "could not connect (connection refused or blocked)"
+		} else if ( status >= 400 ) {
+			message = "HTTP #status#"
+		} else if ( status == 0 ) {
+			if ( raw contains "larger than" ) {
+				message = "the answer is larger than #static.MAX_BODY# characters"
+			} else if ( raw contains "timed out" || raw contains "timeout" ) {
+				message = "timed out after #ceiling( arguments.timeoutMs / 1000 )# s"
+			} else {
+				message = "could not connect (connection refused or blocked)"
+			}
+		} else {
+			// A JSON-RPC error answer: the server said no
+			message = "the server refused the request: " & left( raw, 160 )
+		}
+		return { ok : false, kind : "unreachable", message : message }
+	}
+
+}

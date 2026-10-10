@@ -165,22 +165,28 @@ spotless {
  * - Copies the build/libs/bx-lens-*.jar to build/modules/bx-lens/libs/
  * - Copies the src/main/bx/** to build/modules/bx-lens/ folder.
  */
-def bxAiVersion = '3.4.0'
+def bxAiVersion = '3.6.0-snapshot'
 /**
  * BoxLang AI (bx-ai) ships inside this module as a nested module (module inception: the modules folder of a module).
- * It is downloaded once into build/cache.
+ * <p>
+ * It is the snapshot build of bx-ai (its development branch), because the MCP client controls Lens needs (withUrlGuard, withRedirects,
+ * withMaxResponseBytes, withHandshake, withHttpVersion, the timeout in milliseconds, listTools( cursor )) are not in a release yet. The snapshot is
+ * built and published by the bx-ai repository on every push to development, so it changes and cannot be pinned by a checksum.
+ * When a bx-ai release has them: set bxAiVersion to that release and set bxAiSha256 to its SHA-256, which turns the check on again.
  */
 task downloadBxAi( type: Download ) {
 	src "https://downloads.ortussolutions.com/ortussolutions/boxlang-modules/bx-ai/${bxAiVersion}/bx-ai-${bxAiVersion}.zip"
 	dest file( "build/cache/bx-ai-${bxAiVersion}.zip" )
-	overwrite false
-	onlyIfModified false
+	// A snapshot changes: ask the server each time and download only when it is newer
+	overwrite true
+	onlyIfModified true
 }
 
-// The archive is bundled into the module, so it must be the one this build was written against
-def bxAiSha256 = 'ceffd0009633cb5a5d9a543cdbc616c5d1e6541719a3755c036443255cc77ea7'
+// The archive is bundled into the module, so a release is checked against the one this build was written against. A snapshot has no checksum.
+def bxAiSha256 = ''
 task verifyBxAi( type: Verify ) {
 	dependsOn downloadBxAi
+	onlyIf { !bxAiSha256.isEmpty() }
 	src file( "build/cache/bx-ai-${bxAiVersion}.zip" )
 	algorithm 'SHA-256'
 	checksum bxAiSha256

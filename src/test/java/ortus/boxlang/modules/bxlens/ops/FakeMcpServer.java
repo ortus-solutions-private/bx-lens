@@ -85,10 +85,11 @@ public final class FakeMcpServer implements AutoCloseable {
 			return;
 		} else if ( method.equals( "initialize" ) ) {
 			if ( this.refuseInitialize ) {
-				reply = "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get( "id" ) + ",\"error\":{\"code\":-32601,\"message\":\"no\"}}";
+				reply = "{\"jsonrpc\":\"2.0\",\"id\":" + quote( String.valueOf( msg.get( "id" ) ) ) + ",\"error\":{\"code\":-32601,\"message\":\"no\"}}";
 			} else {
 				ex.getResponseHeaders().add( "Mcp-Session-Id", "s-" + id );
-				reply = "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get( "id" ) + ",\"result\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{}}}";
+				reply = "{\"jsonrpc\":\"2.0\",\"id\":" + quote( String.valueOf( msg.get( "id" ) ) )
+				    + ",\"result\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{}}}";
 			}
 		} else if ( method.equals( "tools/list" ) ) {
 			this.listCount.incrementAndGet();
@@ -105,7 +106,8 @@ public final class FakeMcpServer implements AutoCloseable {
 				    + "{\"query\":{\"type\":\"string\",\"description\":\"What to search\"},\"limit\":{\"type\":\"integer\"},\"deep\":{\"type\":\"boolean\"}},"
 				    + ( n.equals( "searchDocumentation" ) ? "\"required\":[\"query\"]" : "\"required\":[]" ) + "}}" );
 			}
-			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get( "id" ) + ",\"result\":{\"tools\":[" + String.join( ",", tools ) + "]}}";
+			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + quote( String.valueOf( msg.get( "id" ) ) ) + ",\"result\":{\"tools\":[" + String.join( ",", tools )
+			    + "]}}";
 		} else if ( method.equals( "tools/call" ) ) {
 			Map<String, Object>	params	= Plain.map( msg.get( "params" ) );
 			String				tool	= Plain.str( params.get( "name" ) );
@@ -116,10 +118,12 @@ public final class FakeMcpServer implements AutoCloseable {
 				case "big" -> "x".repeat( 30_000 );
 				default -> "answer from " + id + " for " + Plain.map( params.get( "arguments" ) ).get( "query" );
 			};
-			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get( "id" ) + ",\"result\":{\"content\":[{\"type\":\"text\",\"text\":" + quote( text )
+			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + quote( String.valueOf( msg.get( "id" ) ) ) + ",\"result\":{\"content\":[{\"type\":\"text\",\"text\":"
+			    + quote( text )
 			    + "}],\"isError\":false}}";
 		} else {
-			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + msg.get( "id" ) + ",\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}";
+			reply = "{\"jsonrpc\":\"2.0\",\"id\":" + quote( String.valueOf( msg.get( "id" ) ) )
+			    + ",\"error\":{\"code\":-32601,\"message\":\"Method not found\"}}";
 		}
 		boolean	plain	= id.equals( "plain" );
 		byte[]	out		= ( plain ? reply : "event: message\ndata: " + reply + "\n\n" ).getBytes( StandardCharsets.UTF_8 );

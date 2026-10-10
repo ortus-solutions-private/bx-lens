@@ -64,7 +64,7 @@ Passwords, parameter values and the configuration are not in a prompt. Credentia
 
 A local provider such as Ollama keeps the prompt inside your network. A hosted provider receives it. The provider settings (not the key) can be changed from the [AI page](ai.md). They are shared by Explain with AI, Ask Lens and the assistant.
 
-BoxLang AI (`bx-ai` 3.4.0) ships inside Lens, in the module's `modules` folder, and is Apache 2.0 licensed. If a server removes it, Lens still loads, **Explain with AI** is hidden and the Ask page says the server is not set to call a model. Lens was checked against `bx-ai` 3.4.0 with a mock Ollama server (`harness/mock-ai.py`).
+BoxLang AI (`bx-ai`, the 3.6.0 snapshot build) ships inside Lens, in the module's `modules` folder, and is Apache 2.0 licensed. If a server removes it, Lens still loads, **Explain with AI** is hidden and the Ask page says the server is not set to call a model. Lens was checked against `bx-ai` 3.6.0 with a mock Ollama server (`harness/mock-ai.py`).
 
 ### Limits on the calls
 

@@ -56,7 +56,7 @@ public class McpServiceTest {
 	void start() throws Exception {
 		this.fake	= new FakeMcpServer();
 		this.store	= new SettingsStore( this.dir.resolve( "o.json" ), this.registry );
-		this.mcp	= new McpService( this.store, this.fake::base, RESOLVER, null );
+		this.mcp	= new McpService( this.store, this.fake::base, RESOLVER, null, new HttpMcpClient( RESOLVER ) );
 	}
 
 	@AfterEach
@@ -66,13 +66,14 @@ public class McpServiceTest {
 	}
 
 	private McpService reload() {
-		return new McpService( new SettingsStore( this.dir.resolve( "o.json" ), this.registry ), this.fake::base, RESOLVER, null );
+		return new McpService( new SettingsStore( this.dir.resolve( "o.json" ), this.registry ), this.fake::base, RESOLVER, null,
+		    new HttpMcpClient( RESOLVER ) );
 	}
 
 	@Test
 	@DisplayName( "the default list is the eleven Ortus documentation servers, all built in, all off, every tool allowed, with the real addresses" )
 	void defaults() {
-		McpService		real	= new McpService( new SettingsStore( null, this.registry ), () -> "", RESOLVER, null );
+		McpService		real	= new McpService( new SettingsStore( null, this.registry ), () -> "", RESOLVER, null, new HttpMcpClient( RESOLVER ) );
 		List<McpServer>	all		= real.list();
 		assertThat( all ).hasSize( 11 );
 		assertThat( all.stream().map( McpServer::id ).toList() )
@@ -350,7 +351,7 @@ public class McpServiceTest {
 	@DisplayName( "tools are looked for again only after five minutes" )
 	void cache() throws Exception {
 		long[]		now	= { 1_000_000L };
-		McpService	m	= new McpService( new SettingsStore( null, this.registry ), this.fake::base, RESOLVER, () -> now[ 0 ] );
+		McpService	m	= new McpService( new SettingsStore( null, this.registry ), this.fake::base, RESOLVER, () -> now[ 0 ], new HttpMcpClient( RESOLVER ) );
 		m.enable( "boxlang", true );
 		m.refreshStale();
 		m.refreshStale();
@@ -368,7 +369,7 @@ public class McpServiceTest {
 	@DisplayName( "a console session may test ten times a minute" )
 	void testRate() {
 		long[]		now	= { 5_000_000L };
-		McpService	m	= new McpService( new SettingsStore( null, this.registry ), () -> "", RESOLVER, () -> now[ 0 ] );
+		McpService	m	= new McpService( new SettingsStore( null, this.registry ), () -> "", RESOLVER, () -> now[ 0 ], new HttpMcpClient( RESOLVER ) );
 		for ( int i = 0; i < McpService.TESTS_PER_MINUTE; i++ ) {
 			assertThat( m.testAllowed( "s1" ) ).isTrue();
 		}

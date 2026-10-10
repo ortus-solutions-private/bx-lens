@@ -65,10 +65,23 @@ function resultText( required string id, required string tool, required struct a
 
 // The path after mcp.bxs is the server id
 id = listFirst( cgi.path_info ?: "", "/" )
-raw = getHTTPRequestData( true ).content
-if ( !isSimpleValue( raw ) ) {
-	raw = toString( raw )
+/**
+ * The body of the request. getHTTPRequestData( true ).content answers an empty string when the body has not arrived yet: BoxLang MiniServer
+ * (BoxHTTPUndertowExchange.getRequestBody) returns "" if InputStream.available() is 0, and a client that sends the headers and the body in two
+ * TCP writes (bx:http does) can get there first. That made this mock answer "parse error" for about one request in six. This reads the stream
+ * of the Undertow exchange, which blocks until the body is there. Remove it when MiniServer reads the body without the available() check (BL-2744, https://ortussolutions.atlassian.net/browse/BL-2744).
+ */
+function requestBody() {
+	try {
+		var webContext = getBoxContext().getRequestContext()
+		var stream     = webContext.getHTTPExchange().getExchange().getInputStream()
+		return createObject( "java", "java.lang.String" ).init( stream.readAllBytes(), "UTF-8" )
+	} catch ( any e ) {
+		var content = getHTTPRequestData( true ).content
+		return isSimpleValue( content ) ? content : toString( content )
+	}
 }
+raw = requestBody()
 
 if ( id == "_log" ) {
 	if ( cgi.request_method == "DELETE" ) {
