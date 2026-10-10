@@ -69,7 +69,7 @@ id = listFirst( cgi.path_info ?: "", "/" )
  * The body of the request. getHTTPRequestData( true ).content answers an empty string when the body has not arrived yet: BoxLang MiniServer
  * (BoxHTTPUndertowExchange.getRequestBody) returns "" if InputStream.available() is 0, and a client that sends the headers and the body in two
  * TCP writes (bx:http does) can get there first. That made this mock answer "parse error" for about one request in six. This reads the stream
- * of the Undertow exchange, which blocks until the body is there. Remove it when MiniServer reads the body without the available() check.
+ * of the Undertow exchange, which blocks until the body is there. Remove it when MiniServer reads the body without the available() check (BL-2744, https://ortussolutions.atlassian.net/browse/BL-2744).
  */
 function requestBody() {
 	try {
