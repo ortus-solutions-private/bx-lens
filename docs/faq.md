@@ -56,7 +56,7 @@ Copy prompt and the Ask ChatGPT and Ask Claude buttons send nothing from the ser
 :::
 
 ::: expandable "Does the AI help need bx-ai?"
-Only Explain with AI and Ask Lens use it, and only with BoxLang+ or a trial. Copy prompt, Ask ChatGPT and Ask Claude are free. `bx-ai` ships inside Lens (a 3.6.0 development build), so there is nothing to install. If you remove it, Lens still loads.
+Only Explain with AI and Ask Lens use it, and only with BoxLang+ or a trial. Copy prompt, Ask ChatGPT and Ask Claude are free. `bx-ai` ships inside Lens (the 3.6.0 snapshot build), so there is nothing to install. If you remove it, Lens still loads.
 :::
 
 ::: expandable "Why are my errors and reports gone after a restart?"

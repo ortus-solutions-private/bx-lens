@@ -79,7 +79,7 @@ Relevant BoxLang development skills live under `.agents/skills` (restore with `n
 
 ## Bundled modules and gating
 
-- BoxLang AI (bx-ai, a 3.6.0 development build) is nested in `modules/bxai` inside the built module. It is kept in `vendor/` and checked by SHA-256 (`verifyBxAi` in `build.gradle`) until a bx-ai release has the MCP client controls Lens needs; then download the release again, update the checksum and delete `vendor/`. Do not add it to `box.json` dependencies.
+- BoxLang AI (bx-ai, the 3.6.0 snapshot build of its development branch) is nested in `modules/bxai` inside the built module. `build.gradle` downloads it (`downloadBxAi`) into `build/cache`, asking the server for a newer one each time. A snapshot has no stable checksum, so `bxAiSha256` is empty and `verifyBxAi` is skipped; when a bx-ai release has the MCP client controls Lens needs, set `bxAiVersion` to it and `bxAiSha256` to its SHA-256. Do not add it to `box.json` dependencies.
 - Features gated by `Licensing.has()` (`Licensing.PLUS_FEATURES`). Everything else is open.
   - `cost`: request cost (CPU, allocation) and the slow request sample.
   - `taskActions`: Run now, pause, resume, reload.

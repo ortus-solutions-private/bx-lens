@@ -99,7 +99,7 @@ Lens counts a failure when a query started and never finished, or when a databas
 ## AI help does not answer
 
 - "AI is off": set `ai.enabled` to `true`.
-- "The bx-ai module is not installed": `bx-ai` ships inside Lens (a 3.6.0 development build), in its `modules/bxai` folder. This message means that folder was removed or did not load. Reinstall the module. Copy prompt and the chat links work without it.
+- "The bx-ai module is not installed": `bx-ai` ships inside Lens (the 3.6.0 snapshot build), in its `modules/bxai` folder. This message means that folder was removed or did not load. Reinstall the module. Copy prompt and the chat links work without it.
 - The server calls need BoxLang+ or a trial. On Free, Explain with AI and Ask are not available, see [Licensing](licensing.md#free-and-boxlang).
 - "Too many AI requests": the limit is 10 per minute. "An AI request is already running": wait for it.
 - "The model did not answer in time": the call waits 90 seconds. Check that the provider, and for Ollama the server and the model, are reachable.
